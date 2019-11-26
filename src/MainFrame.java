@@ -18,6 +18,7 @@ public class MainFrame extends JFrame {
     private JCheckBoxMenuItem showRegionsMenuItem;
     Action rotateLeftGraphicsAction;
     Action rotateRightGraphicsAction;
+    Action saveChangedValues;
     private GraphicsDisplay display = new GraphicsDisplay();
     private boolean fileLoaded = false;
 
@@ -33,11 +34,24 @@ public class MainFrame extends JFrame {
         menuBar.add(fileMenu);
         Action openGraphicsAction = new AbstractAction("Открыть файл с графиком") {
             public void actionPerformed(ActionEvent event) {
-                if (fileChooser.showOpenDialog(MainFrame.this) == JFileChooser.APPROVE_OPTION)
+                if (fileChooser.showOpenDialog(MainFrame.this) == JFileChooser.APPROVE_OPTION){
                     openGraphics(fileChooser.getSelectedFile());
+                }
             }
         };
+
+        saveChangedValues = new AbstractAction("Сохранить измененные значения") {
+            public void actionPerformed(ActionEvent event) {
+                if (fileChooser.showSaveDialog(MainFrame.this) == JFileChooser.APPROVE_OPTION){
+                    saveGraphics(fileChooser.getSelectedFile(), display.getGraphicsData());
+                }
+
+            }
+        };
+        saveChangedValues.setEnabled(fileLoaded);
         fileMenu.add(openGraphicsAction);
+        fileMenu.add(saveChangedValues);
+
         graphicsMenu = new JMenu("График");
         menuBar.add(graphicsMenu);
         Action showAxisAction = new AbstractAction("Показывать оси координат") {
@@ -140,6 +154,7 @@ public class MainFrame extends JFrame {
 
                 if (graphicsData != null && graphicsData.length > 0) {
                     fileLoaded = true;
+                    saveChangedValues.setEnabled(true);
                     display.showGraphics(graphicsData);
                 }
                 reader.close();
@@ -152,6 +167,39 @@ public class MainFrame extends JFrame {
         }
     }
 
+    protected void saveGraphics(File selectedFile, Double[][] graphics) {
+        if(selectedFile.getName().endsWith(".bin")){
+            try {
+                DataOutputStream out = new DataOutputStream(new FileOutputStream(selectedFile));
+                for(Double[] i : graphics){
+                    out.writeDouble(i[0]);
+                    out.writeDouble(i[1]);
+                }
+                out.flush();
+                out.close();
+            }
+            catch (FileNotFoundException e){
+
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        else {
+            try{
+                BufferedWriter out = new BufferedWriter(new FileWriter(selectedFile));
+                for(Double[] i : graphics){
+                    out.write(i[0].toString() + " " + i[1].toString() + "\n");
+                }
+                out.flush();
+                out.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public static void main(String[] args) {
         MainFrame frame = new MainFrame();
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -161,6 +209,7 @@ public class MainFrame extends JFrame {
     private class GraphicsMenuListener implements MenuListener {
         public void menuSelected(MenuEvent e) {
             IntStream.range(0, graphicsMenu.getItemCount()).forEach(i -> graphicsMenu.getItem(i).setEnabled(fileLoaded));
+            saveChangedValues.setEnabled(fileLoaded);
         }
         public void menuDeselected(MenuEvent e) {
         }
